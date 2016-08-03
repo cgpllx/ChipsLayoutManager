@@ -21,13 +21,13 @@ class LTRUpLayouter extends AbstractLayouter implements ILayouter {
 
         //if new view doesn't fit in row and it isn't only one view (we have to layout views with big width somewhere)
         //if previously row finished and we have to fill it
-        viewTop = layoutManager.layoutRow(rowViews, viewTop, viewBottom, viewRight, true);
+        viewTop = layoutManager.layoutRow(rowViews, viewTop, viewBottom, viewRight - getCanvasLeftBorder(), true);
 
         //clear row data
         rowViews.clear();
 
         //go to next row, increase top coordinate, reset left
-        viewRight = getCanvasWidth();
+        viewRight = getCanvasRightBorder();
         viewBottom = viewTop;
     }
 
@@ -49,9 +49,9 @@ class LTRUpLayouter extends AbstractLayouter implements ILayouter {
     public void onAttachView(View view) {
         super.onAttachView(view);
 
-        if (viewRight != getCanvasWidth() && viewRight - layoutManager.getDecoratedMeasuredWidth(view) < 0) {
+        if (viewRight != getCanvasRightBorder() && viewRight - layoutManager.getDecoratedMeasuredWidth(view) < getCanvasLeftBorder()) {
             //new row
-            viewRight = getCanvasWidth();
+            viewRight = getCanvasRightBorder();
             viewBottom = viewTop;
         } else {
             viewRight = layoutManager.getDecoratedLeft(view);
@@ -68,7 +68,7 @@ class LTRUpLayouter extends AbstractLayouter implements ILayouter {
     @Override
     public boolean canNotBePlacedInCurrentRow() {
         int bufLeft = viewRight - currentViewWidth;
-        return bufLeft < 0 && viewRight < getCanvasWidth();
+        return bufLeft < getCanvasLeftBorder() && viewRight < getCanvasRightBorder();
     }
 
     @Override

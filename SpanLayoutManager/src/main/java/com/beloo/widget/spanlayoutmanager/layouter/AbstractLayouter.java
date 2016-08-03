@@ -20,16 +20,41 @@ abstract class AbstractLayouter implements ILayouter {
     protected int rowSize = 0;
     protected int previousRowSize;
 
+    private int canvasLeftBorder;
+    private int canvasRightBorder;
+    private int canvasTopBorder;
+    private int canvasBottomBorder;
+
     protected SpanLayoutManager layoutManager;
 
     AbstractLayouter(SpanLayoutManager layoutManager, int topOffset, int bottomOffset) {
         this.layoutManager = layoutManager;
         this.viewTop = topOffset;
         this.viewBottom = bottomOffset;
+        canvasLeftBorder = layoutManager.getPaddingLeft();
+        canvasRightBorder = getCanvasWidth() - layoutManager.getPaddingRight();
+        canvasTopBorder = layoutManager.getPaddingTop();
+        canvasBottomBorder = getCanvasHeight() - layoutManager.getPaddingBottom();
     }
 
     int getCanvasWidth() {
         return layoutManager.getWidth();
+    }
+
+    int getCanvasLeftBorder() {
+        return canvasLeftBorder;
+    }
+
+    int getCanvasRightBorder() {
+        return canvasRightBorder;
+    }
+
+    int getCanvasBottomBorder() {
+        return canvasBottomBorder;
+    }
+
+    int getCanvasTopBorder() {
+        return canvasTopBorder;
     }
 
     int getCanvasHeight() {

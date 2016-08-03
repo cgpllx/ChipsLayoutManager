@@ -25,7 +25,7 @@ class LTRDownLayouter extends AbstractLayouter {
         layoutManager.layoutRow(rowViews, viewTop, maxBottom, 0, false);
 
         //go to next row, increase top coordinate, reset left
-        viewLeft = 0;
+        viewLeft = getCanvasLeftBorder();
         viewTop = maxBottom;
 
         //clear row data
@@ -34,7 +34,7 @@ class LTRDownLayouter extends AbstractLayouter {
 
     @Override
     public boolean canNotBePlacedInCurrentRow() {
-        return viewLeft > 0 && viewLeft + currentViewWidth > getCanvasWidth();
+        return viewLeft > getCanvasLeftBorder() && viewLeft + currentViewWidth > getCanvasRightBorder();
     }
 
     @Override
