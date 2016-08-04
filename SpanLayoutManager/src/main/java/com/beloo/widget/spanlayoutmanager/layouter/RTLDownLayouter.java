@@ -22,7 +22,7 @@ class RTLDownLayouter extends AbstractLayouter {
         //if new view doesn't fit in row and it isn't only one view (we have to layout views with big width somewhere)
 
         //layout previously calculated row
-        layoutManager.layoutRow(rowViews, viewTop, maxBottom, 0, false);
+        layoutManager.correctLayoutRow(rowViews, viewTop, maxBottom, 0, false);
 
         //go to next row, increase top coordinate, reset left
         viewRight = getCanvasWidth();

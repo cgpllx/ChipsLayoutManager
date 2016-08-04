@@ -3,10 +3,7 @@ package com.beloo.widget.spanlayoutmanager;
 import android.graphics.Rect;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-
-/**
- * @return View, which is highest visible left view
- */
+import android.support.v7.widget.RecyclerView;
 
 class AnchorViewState {
     @Nullable
@@ -14,12 +11,12 @@ class AnchorViewState {
     @NonNull
     private Rect anchorViewRect;
 
-    AnchorViewState() {
-        anchorViewRect = new Rect(0, 0, 0, 0);
+    private AnchorViewState(@NonNull Rect rect) {
+        anchorViewRect = rect;
     }
 
-    static AnchorViewState getNotFoundState() {
-        return new AnchorViewState();
+    static AnchorViewState getNotFoundState(Rect canvasRect) {
+        return new AnchorViewState(canvasRect);
     }
 
     AnchorViewState(int position, @NonNull Rect anchorViewRect) {

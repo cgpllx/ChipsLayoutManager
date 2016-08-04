@@ -26,7 +26,7 @@ class RTLUpLayouter extends AbstractLayouter implements ILayouter {
         //if previously row finished and we have to fill it
         Log.d(TAG, "row bottom " + viewBottom);
         Log.d(TAG, "row top " + viewTop);
-        viewTop = layoutManager.layoutRow(rowViews, viewTop, viewBottom, -(getCanvasWidth() - viewLeft), true);
+        viewTop = layoutManager.correctLayoutRow(rowViews, viewTop, viewBottom, -(getCanvasWidth() - viewLeft), true);
 
         //clear row data
         rowViews.clear();

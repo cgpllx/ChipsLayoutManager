@@ -21,7 +21,7 @@ class LTRUpLayouter extends AbstractLayouter implements ILayouter {
 
         //if new view doesn't fit in row and it isn't only one view (we have to layout views with big width somewhere)
         //if previously row finished and we have to fill it
-        viewTop = layoutManager.layoutRow(rowViews, viewTop, viewBottom, viewRight - getCanvasLeftBorder(), true);
+        viewTop = layoutManager.correctLayoutRow(rowViews, viewTop, viewBottom, viewRight - getCanvasLeftBorder(), true);
 
         //clear row data
         rowViews.clear();
@@ -62,7 +62,7 @@ class LTRUpLayouter extends AbstractLayouter implements ILayouter {
 
     @Override
     public boolean isFinishedLayouting() {
-        return viewBottom < 0;
+        return viewBottom < getCanvasTopBorder();
     }
 
     @Override

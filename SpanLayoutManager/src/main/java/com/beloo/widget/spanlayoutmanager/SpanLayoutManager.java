@@ -240,7 +240,7 @@ public class SpanLayoutManager extends RecyclerView.LayoutManager {
      * @param isReverseOrder if fillWithLayouter views from the end this flag have to be true to not break child position in recyclerView
      * @param leftOffsetOfRow How much row have to be shifted before placing. Should be negative on RTL
      * returns viewTop */
-    public int layoutRow(List<Pair<Rect, View>> rowViews, int minTop, int maxBottom, int leftOffsetOfRow, boolean isReverseOrder) {
+    public int correctLayoutRow(List<Pair<Rect, View>> rowViews, int minTop, int maxBottom, int leftOffsetOfRow, boolean isReverseOrder) {
         for (Pair<Rect, View> rowViewRectPair : rowViews) {
             Rect viewRect = rowViewRectPair.first;
 
@@ -311,7 +311,7 @@ public class SpanLayoutManager extends RecyclerView.LayoutManager {
         final View bottomView = getChildAt(childCount - 1);
 
         int viewSpan = getDecoratedBottom(bottomView) - getDecoratedTop(topView);
-        if (getPosition(topView) == 0 && getPosition(bottomView) == getItemCount() - 1 && viewSpan <= getHeight()) {
+        if (getPosition(topView) == 0 && getPosition(bottomView) == getItemCount() - 1 && viewSpan <= getHeight() - getPaddingBottom()) {
             //where all objects fit on screen, no scrolling needed
             return 0;
         }
@@ -365,13 +365,21 @@ public class SpanLayoutManager extends RecyclerView.LayoutManager {
         return topView;
     }
 
+    /** @return canvas rect with padding support */
+    private Rect getCanvasRect() {
+        return new Rect(getPaddingLeft(), getPaddingTop(), getWidth() - getPaddingRight(), getHeight() - getPaddingBottom());
+    }
+
     @NonNull
-    /** find the view in a higher row which is closest to the left border*/
+    /** find the view in a higher row which is closest to the left border
+     * @return View, which is highest visible left view
+     */
     private AnchorViewState getAnchorVisibleTopLeftView() {
         int childCount = getChildCount();
-        AnchorViewState topLeft = AnchorViewState.getNotFoundState();
+        
+        Rect mainRect = getCanvasRect();
+        AnchorViewState topLeft = AnchorViewState.getNotFoundState(mainRect);
 
-        Rect mainRect = new Rect(0, 0, getWidth(), getHeight());
         int minTop = Integer.MAX_VALUE;
         for (int i = 0; i < childCount; i++) {
             View view = getChildAt(i);
