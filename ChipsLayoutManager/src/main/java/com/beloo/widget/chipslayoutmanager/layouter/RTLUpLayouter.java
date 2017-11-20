@@ -1,36 +1,28 @@
 package com.beloo.widget.chipslayoutmanager.layouter;
 
 import android.graphics.Rect;
-import android.util.Log;
+import android.support.annotation.NonNull;
 import android.util.Pair;
 import android.view.View;
 
-import com.beloo.widget.chipslayoutmanager.ChipsLayoutManager;
-import com.beloo.widget.chipslayoutmanager.cache.IViewCacheStorage;
-import com.beloo.widget.chipslayoutmanager.gravity.IChildGravityResolver;
+import java.util.Collections;
 
 class RTLUpLayouter extends AbstractLayouter implements ILayouter {
     private static final String TAG = RTLUpLayouter.class.getSimpleName();
 
-    protected int viewLeft;
-
-    RTLUpLayouter(ChipsLayoutManager spanLayoutManager,
-                  IChildGravityResolver childGravityResolver,
-                  IViewCacheStorage cacheStorage,
-                  int topOffset, int leftOffset, int bottomOffset) {
-        super(spanLayoutManager, topOffset, bottomOffset, cacheStorage, childGravityResolver);
-        Log.d(TAG, "start bottom offset = " + bottomOffset);
-        this.viewLeft = leftOffset;
+    private RTLUpLayouter(Builder builder) {
+        super(builder);
     }
 
-    @Override
-    void addView(View view) {
-        getLayoutManager().addView(view, 0);
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     @Override
     void onPreLayout() {
         int leftOffsetOfRow = -(getCanvasRightBorder() - viewLeft);
+
+        viewLeft = rowViews.size() > 0 ? Integer.MAX_VALUE : 0;
 
         for (Pair<Rect, View> rowViewRectPair : rowViews) {
             Rect viewRect = rowViewRectPair.first;
@@ -38,8 +30,9 @@ class RTLUpLayouter extends AbstractLayouter implements ILayouter {
             viewRect.left = viewRect.left - leftOffsetOfRow;
             viewRect.right = viewRect.right - leftOffsetOfRow;
 
-            rowTop = Math.min(rowTop, viewRect.top);
-            rowBottom = Math.max(rowBottom, viewRect.bottom);
+            viewLeft = Math.min(viewLeft, viewRect.left);
+            viewTop = Math.min(viewTop, viewRect.top);
+            viewBottom = Math.max(viewBottom, viewRect.bottom);
         }
     }
 
@@ -47,51 +40,66 @@ class RTLUpLayouter extends AbstractLayouter implements ILayouter {
     void onAfterLayout() {
         //go to next row, increase top coordinate, reset left
         viewLeft = getCanvasLeftBorder();
-        rowBottom = rowTop;
+        viewBottom = viewTop;
+    }
+
+    @Override
+    boolean isAttachedViewFromNewRow(View view) {
+        int bottomOfCurrentView = getLayoutManager().getDecoratedBottom(view);
+        int leftOfCurrentView = getLayoutManager().getDecoratedLeft(view);
+
+        return viewTop >= bottomOfCurrentView
+                && leftOfCurrentView < viewLeft;
     }
 
     @Override
     Rect createViewRect(View view) {
-        int right = viewLeft + currentViewWidth;
-        int viewTop = rowBottom - currentViewHeight;
-        Rect viewRect = new Rect(viewLeft, viewTop, right, rowBottom);
+        int right = viewLeft + getCurrentViewWidth();
+        int viewTop = viewBottom - getCurrentViewHeight();
+        Rect viewRect = new Rect(viewLeft, viewTop, right, viewBottom);
         viewLeft = viewRect.right;
         return viewRect;
     }
 
     @Override
-    public boolean onAttachView(View view) {
+    boolean isReverseOrder() {
+        return true;
+    }
 
-        if (viewLeft != getCanvasLeftBorder() && viewLeft + getLayoutManager().getDecoratedMeasuredWidth(view) > getCanvasRightBorder()) {
+    @Override
+    public void onInterceptAttachView(View view) {
+        if (viewLeft != getCanvasLeftBorder() && viewLeft + getCurrentViewWidth() > getCanvasRightBorder()) {
             viewLeft = getCanvasLeftBorder();
-            rowBottom = rowTop;
+            viewBottom = viewTop;
         } else {
             viewLeft = getLayoutManager().getDecoratedRight(view);
         }
 
-        rowTop = Math.min(rowTop, getLayoutManager().getDecoratedTop(view));
-
-        return super.onAttachView(view);
+        viewTop = Math.min(viewTop, getLayoutManager().getDecoratedTop(view));
     }
 
     @Override
-    public boolean isFinishedLayouting() {
-        return rowBottom < getCanvasTopBorder();
+    public int getStartRowBorder() {
+        return getViewTop();
     }
 
     @Override
-    public boolean canNotBePlacedInCurrentRow() {
-        //when go up, check cache to layout according previous down algorithm
-        boolean stopDueToCache = getCacheStorage().isPositionEndsRow(getCurrentViewPosition());
-        if (stopDueToCache) return true;
-
-        int bufRight = viewLeft + currentViewWidth;
-        return super.canNotBePlacedInCurrentRow() || (bufRight > getCanvasRightBorder() && viewLeft > getCanvasLeftBorder());
+    public int getEndRowBorder() {
+        return getViewBottom();
     }
 
     @Override
-    public AbstractPositionIterator positionIterator() {
-        return new DecrementalPositionIterator();
+    public int getRowLength() {
+        return getCanvasRightBorder() - viewLeft;
     }
 
+    public static final class Builder extends AbstractLayouter.Builder {
+        private Builder() {
+        }
+
+        @NonNull
+        public RTLUpLayouter createLayouter() {
+            return new RTLUpLayouter(this);
+        }
+    }
 }

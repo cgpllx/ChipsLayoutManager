@@ -1,41 +1,51 @@
 package com.beloo.widget.chipslayoutmanager.layouter;
 
 import android.graphics.Rect;
+import android.support.annotation.NonNull;
 import android.util.Pair;
 import android.view.View;
 
-import com.beloo.widget.chipslayoutmanager.ChipsLayoutManager;
-import com.beloo.widget.chipslayoutmanager.cache.IViewCacheStorage;
-import com.beloo.widget.chipslayoutmanager.gravity.IChildGravityResolver;
+import java.util.Collections;
 
 class LTRUpLayouter extends AbstractLayouter implements ILayouter {
 
-    private int viewRight;
+    private LTRUpLayouter(Builder builder) {
+        super(builder);
+    }
 
-    LTRUpLayouter(ChipsLayoutManager layoutManager,
-                  IChildGravityResolver childGravityResolver,
-                  IViewCacheStorage cacheStorage,
-                  int topOffset,int rightOffset, int bottomOffset) {
-        super(layoutManager, topOffset, bottomOffset, cacheStorage, childGravityResolver);
-        this.viewRight = rightOffset;
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     @Override
-    void addView(View view) {
-        getLayoutManager().addView(view, 0);
+    Rect createViewRect(View view) {
+        int left = viewRight - getCurrentViewWidth();
+        int viewTop = viewBottom - getCurrentViewHeight();
+
+        Rect viewRect = new Rect(left, viewTop, viewRight, viewBottom);
+        viewRight = viewRect.left;
+        return viewRect;
+    }
+
+    @Override
+    boolean isReverseOrder() {
+        return true;
     }
 
     @Override
     void onPreLayout() {
         int leftOffsetOfRow = viewRight - getCanvasLeftBorder();
+        viewLeft = 0;
+
         for (Pair<Rect, View> rowViewRectPair : rowViews) {
             Rect viewRect = rowViewRectPair.first;
 
             viewRect.left = viewRect.left - leftOffsetOfRow;
             viewRect.right = viewRect.right - leftOffsetOfRow;
 
-            rowTop = Math.min(rowTop, viewRect.top);
-            rowBottom = Math.max(rowBottom, viewRect.bottom);
+            viewLeft = Math.max(viewRect.right, viewLeft);
+            viewTop = Math.min(viewTop, viewRect.top);
+            viewBottom = Math.max(viewBottom, viewRect.bottom);
         }
     }
 
@@ -43,53 +53,53 @@ class LTRUpLayouter extends AbstractLayouter implements ILayouter {
     void onAfterLayout() {
         //go to next row, increase top coordinate, reset left
         viewRight = getCanvasRightBorder();
-        rowBottom = rowTop;
+        viewBottom = viewTop;
     }
 
     @Override
-    Rect createViewRect(View view) {
-        int left = viewRight - currentViewWidth;
-        int viewTop = rowBottom - currentViewHeight;
+    boolean isAttachedViewFromNewRow(View view) {
+        int bottomOfCurrentView = getLayoutManager().getDecoratedBottom(view);
+        int rightOfCurrentView = getLayoutManager().getDecoratedRight(view);
 
-        Rect viewRect = new Rect(left, viewTop, viewRight, rowBottom);
-        viewRight = viewRect.left;
-        return viewRect;
+        return viewTop >= bottomOfCurrentView
+                && rightOfCurrentView > viewRight;
     }
 
     @Override
-    public boolean onAttachView(View view) {
-
-        if (viewRight != getCanvasRightBorder() && viewRight - getLayoutManager().getDecoratedMeasuredWidth(view) < getCanvasLeftBorder()) {
+    public void onInterceptAttachView(View view) {
+        if (viewRight != getCanvasRightBorder() && viewRight - getCurrentViewWidth() < getCanvasLeftBorder()) {
             //new row
             viewRight = getCanvasRightBorder();
-            rowBottom = rowTop;
+            viewBottom = viewTop;
         } else {
             viewRight = getLayoutManager().getDecoratedLeft(view);
         }
 
-        rowTop = Math.min(rowTop, getLayoutManager().getDecoratedTop(view));
-
-        return super.onAttachView(view);
+        viewTop = Math.min(viewTop, getLayoutManager().getDecoratedTop(view));
     }
 
     @Override
-    public boolean isFinishedLayouting() {
-        return rowBottom < getCanvasTopBorder();
+    public int getStartRowBorder() {
+        return getViewTop();
     }
 
     @Override
-    public boolean canNotBePlacedInCurrentRow() {
-        //when go up, check cache to layout according previous down algorithm
-        boolean stopDueToCache = getCacheStorage().isPositionEndsRow(getCurrentViewPosition());
-        if (stopDueToCache) return true;
-
-        int bufLeft = viewRight - currentViewWidth;
-        return super.canNotBePlacedInCurrentRow() || (bufLeft < getCanvasLeftBorder() && viewRight < getCanvasRightBorder());
+    public int getEndRowBorder() {
+        return getViewBottom();
     }
 
     @Override
-    public AbstractPositionIterator positionIterator() {
-        return new DecrementalPositionIterator();
+    public int getRowLength() {
+        return getCanvasRightBorder() - viewRight;
     }
 
+    public static final class Builder extends AbstractLayouter.Builder {
+        private Builder() {
+        }
+
+        @NonNull
+        public LTRUpLayouter createLayouter() {
+            return new LTRUpLayouter(this);
+        }
+    }
 }

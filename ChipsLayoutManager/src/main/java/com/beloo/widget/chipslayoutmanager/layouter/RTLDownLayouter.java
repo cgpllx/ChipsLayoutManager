@@ -1,72 +1,95 @@
 package com.beloo.widget.chipslayoutmanager.layouter;
 
 import android.graphics.Rect;
+import android.support.annotation.NonNull;
 import android.view.View;
-
-import com.beloo.widget.chipslayoutmanager.ChipsLayoutManager;
-import com.beloo.widget.chipslayoutmanager.cache.IViewCacheStorage;
-import com.beloo.widget.chipslayoutmanager.gravity.IChildGravityResolver;
 
 class RTLDownLayouter extends AbstractLayouter {
 
-    private int viewRight;
+    private boolean isPurged;
 
-    RTLDownLayouter(ChipsLayoutManager layoutManager, IChildGravityResolver childGravityResolver,
-                    IViewCacheStorage cacheStorage,
-                    int topOffset, int rightOffset, int bottomOffset) {
-        super(layoutManager, topOffset, bottomOffset, cacheStorage, childGravityResolver);
-        viewRight = rightOffset;
+    private RTLDownLayouter(Builder builder) {
+        super(builder);
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     @Override
     void onPreLayout() {
-        getCacheStorage().storeRow(rowViews);
+        if (!rowViews.isEmpty()) {
+            //todo this isn't great place for that. Should be refactored somehow
+            if (!isPurged) {
+                isPurged = true;
+                getCacheStorage().purgeCacheFromPosition(getLayoutManager().getPosition(rowViews.get(0).second));
+            }
+
+            getCacheStorage().storeRow(rowViews);
+        }
     }
 
     @Override
     void onAfterLayout() {
         //go to next row, increase top coordinate, reset left
         viewRight = getCanvasRightBorder();
-        rowTop = rowBottom;
-    }
-
-
-    @Override
-    void addView(View view) {
-        getLayoutManager().addView(view);
+        viewTop = viewBottom;
     }
 
     @Override
-    public boolean canNotBePlacedInCurrentRow() {
-        return super.canNotBePlacedInCurrentRow() || (viewRight < getCanvasRightBorder() && viewRight - currentViewWidth < getCanvasLeftBorder());
-    }
+    boolean isAttachedViewFromNewRow(View view) {
 
-    @Override
-    public AbstractPositionIterator positionIterator() {
-        return new IncrementalPositionIterator(getLayoutManager().getItemCount());
+        int topOfCurrentView = getLayoutManager().getDecoratedTop(view);
+        int rightOfCurrentVIew = getLayoutManager().getDecoratedRight(view);
+
+        return viewBottom <= topOfCurrentView
+                && rightOfCurrentVIew > viewRight;
     }
 
     @Override
     Rect createViewRect(View view) {
-        Rect viewRect = new Rect(viewRight - currentViewWidth, rowTop, viewRight, rowTop + currentViewHeight);
+        Rect viewRect = new Rect(viewRight - getCurrentViewWidth(), viewTop, viewRight, viewTop + getCurrentViewHeight());
         viewRight = viewRect.left;
-        rowBottom = Math.max(rowBottom, viewRect.bottom);
+        viewBottom = Math.max(viewBottom, viewRect.bottom);
         return viewRect;
     }
 
     @Override
-    public boolean onAttachView(View view) {
-        rowTop = getLayoutManager().getDecoratedTop(view);
-        viewRight = getLayoutManager().getDecoratedLeft(view);
-
-        rowBottom = Math.max(rowBottom, getLayoutManager().getDecoratedBottom(view));
-
-        return super.onAttachView(view);
+    boolean isReverseOrder() {
+        return false;
     }
 
     @Override
-    public boolean isFinishedLayouting() {
-        return rowTop > getCanvasBottomBorder();
+    public void onInterceptAttachView(View view) {
+        viewTop = getLayoutManager().getDecoratedTop(view);
+        viewRight = getLayoutManager().getDecoratedLeft(view);
+
+        viewBottom = Math.max(viewBottom, getLayoutManager().getDecoratedBottom(view));
     }
 
+    @Override
+    public int getStartRowBorder() {
+        return getViewTop();
+    }
+
+    @Override
+    public int getEndRowBorder() {
+        return getViewBottom();
+    }
+
+    @Override
+    public int getRowLength() {
+        return getCanvasRightBorder() - viewRight;
+    }
+
+
+    public static final class Builder extends AbstractLayouter.Builder {
+        private Builder() {
+        }
+
+        @NonNull
+        public RTLDownLayouter createLayouter() {
+            return new RTLDownLayouter(this);
+        }
+    }
 }
